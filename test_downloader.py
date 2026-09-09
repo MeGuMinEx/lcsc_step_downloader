@@ -55,7 +55,7 @@ class DownloaderTests(unittest.TestCase):
         self.logger.start()
         self.addCleanup(self.logger.stop)
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_preview_download_works_without_schematic_symbol(self, request):
         request.side_effect = fallback_responses() + [response(STEP)]
         result = self.client.get("/get_model/C41427486")
@@ -69,7 +69,7 @@ class DownloaderTests(unittest.TestCase):
         self.assertEqual(calls[3].args[1],
                          "https://modules.lceda.cn/qAxj6KHrDKw4blvCG8QJPs7Y/" + MODEL_UUID)
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_legacy_download_and_input_normalization(self, request):
         request.side_effect = [
             response({"success": True, "result": {"packageDetail": package()}}),
@@ -82,14 +82,14 @@ class DownloaderTests(unittest.TestCase):
         self.assertIn("/C2040/", request.call_args_list[0].args[1])
         self.assertIn("modules.easyeda.com/", request.call_args_list[1].args[1])
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_invalid_id_does_not_query_upstream(self, request):
         for url in ["/get_model", "/get_model?lcsc_id=", "/get_model?lcsc_id=C12%2F34"]:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 400)
         request.assert_not_called()
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_missing_package_is_explained(self, request):
         request.side_effect = fallback_responses()[:1] + [
             response({"success": True, "result": {"data": []}}),
@@ -98,32 +98,32 @@ class DownloaderTests(unittest.TestCase):
         self.assertEqual(result.status_code, 404)
         self.assertIn("对应的封装", result.get_data(as_text=True))
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_missing_3d_model_is_explained(self, request):
         request.side_effect = fallback_responses(with_model=False)
         result = self.client.get("/get_model/C41427486")
         self.assertEqual(result.status_code, 404)
         self.assertIn("没有关联 3D 模型", result.get_data(as_text=True))
 
-    @patch("downloader.requests.Session.request", side_effect=requests.Timeout())
+    @patch("jlc_downloader.core.requests.Session.request", side_effect=requests.Timeout())
     def test_network_failure_is_not_reported_as_missing_model(self, request):
         self.assertEqual(self.client.get("/get_model/C41427486").status_code, 502)
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_invalid_step_is_not_sent_as_download(self, request):
         request.side_effect = fallback_responses() + [response(b"<html>Access denied</html>")]
         result = self.client.get("/get_model/C41427486")
         self.assertEqual(result.status_code, 502)
         self.assertNotIn("Content-Disposition", result.headers)
 
-    @patch("downloader.requests.Session.request")
+    @patch("jlc_downloader.core.requests.Session.request")
     def test_missing_step_is_distinct_from_missing_3d_model(self, request):
         request.side_effect = fallback_responses() + [response(b"Not found", 404)]
         result = self.client.get("/get_model/C41427486")
         self.assertEqual(result.status_code, 404)
         self.assertIn("服务器未提供对应 STEP 文件", result.get_data(as_text=True))
 
-    @patch("downloader.requests.Session.request", return_value=response(b"not JSON"))
+    @patch("jlc_downloader.core.requests.Session.request", return_value=response(b"not JSON"))
     def test_invalid_api_response_is_reported(self, request):
         self.assertEqual(self.client.get("/get_model/C41427486").status_code, 502)
 

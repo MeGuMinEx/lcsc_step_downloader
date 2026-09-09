@@ -1,0 +1,4 @@
+include LICENSE README.md THIRD_PARTY_NOTICES.md
+include build_exe.ps1 jlc-downloader requirements.txt requirements-build.txt
+include test_cli.py test_downloader.py
+recursive-include packaging *.py

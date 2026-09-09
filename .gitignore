@@ -1,4 +1,8 @@
 # Byte-compiled / optimized / DLL files
+# Downloaded models and local smoke-test outputs
+models/
+.smoke-output/
+
 __pycache__/
 *.py[cod]
 *$py.class

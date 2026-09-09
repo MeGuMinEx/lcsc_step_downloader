@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77", "packaging>=24.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jlc-step-downloader"
+version = "0.1.0"
+description = "Download STEP models by LCSC part number, including LCSC preview-only parts"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["requests>=2.32.3,<3"]
+
+[project.optional-dependencies]
+web = ["Flask>=3.0,<4", "gunicorn>=22; sys_platform != 'win32'"]
+
+[project.scripts]
+jlc-downloader = "jlc_downloader.cli:main"
+
+[project.urls]
+Repository = "https://github.com/MeGuMinEx/lcsc_step_downloader"
+
+[tool.setuptools]
+packages = ["jlc_downloader"]
+py-modules = ["downloader"]
