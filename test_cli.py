@@ -1,6 +1,7 @@
 from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,6 +20,32 @@ class CliTests(unittest.TestCase):
         with redirect_stdout(stdout), redirect_stderr(stderr):
             status = main(arguments)
         return status, stdout.getvalue(), stderr.getvalue()
+
+    @patch("jlc_downloader.cli.download_step")
+    def test_id_option_downloads_to_callers_working_directory(self, download):
+        download.return_value = DownloadedModel("C41427486", "model", "uuid", DATA, "preview")
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            try:
+                os.chdir(directory)
+                status, stdout, _ = self.invoke(["--ID", "C41427486", "--json"])
+                result = json.loads(stdout)["results"][0]
+                self.assertEqual(status, 0)
+                self.assertEqual(Path(result["path"]), Path(directory) / "C41427486.step")
+                self.assertEqual(Path("C41427486.step").read_bytes(), DATA)
+                download.assert_called_once_with("C41427486", timeout=30)
+            finally:
+                os.chdir(previous)
+
+    @patch("jlc_downloader.cli.download_step")
+    def test_id_aliases_accept_multiple_repeated_and_positional_ids(self, download):
+        download.side_effect = lambda code, timeout: DownloadedModel(code, "model", "uuid", DATA, "legacy")
+        with tempfile.TemporaryDirectory() as directory:
+            status, stdout, _ = self.invoke(["C2040", "--ID", "C41427486", "C2040", "--id", "C2040",
+                                             "-o", directory, "--json"])
+            self.assertEqual(status, 0)
+            self.assertEqual([r["lcsc_id"] for r in json.loads(stdout)["results"]], ["C2040", "C41427486"])
+            self.assertEqual(download.call_count, 2)
 
     @patch("jlc_downloader.cli.download_step")
     def test_batch_continues_after_failure_and_emits_json(self, download):
@@ -70,7 +97,8 @@ class CliTests(unittest.TestCase):
 
     @patch("jlc_downloader.cli.download_step")
     def test_invalid_arguments_never_download(self, download):
-        for arguments in [["../../bad"], ["C2040", "--timeout", "nan"], ["C2040", "--timeout", "0"]]:
+        for arguments in [[], ["--json"], ["--ID"], ["--ID", "../../bad"], ["../../bad"],
+                          ["C2040", "--timeout", "nan"], ["C2040", "--timeout", "0"]]:
             with self.subTest(arguments=arguments), self.assertRaises(SystemExit) as raised:
                 self.invoke(arguments)
             self.assertEqual(raised.exception.code, 2)

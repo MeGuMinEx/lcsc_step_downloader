@@ -11,12 +11,19 @@
 在 PowerShell 中运行：
 
 ```powershell
-.\dist\jlc-downloader.exe C41427486
-.\dist\jlc-downloader.exe C41427486 C2040 -o .\models
+.\dist\jlc-downloader.exe --ID C41427486
+.\dist\jlc-downloader.exe --ID C41427486 C2040 -o .\models
 .\dist\jlc-downloader.exe "https://www.lcsc.com/product-detail/C41427486.html" -o .\models
 ```
 
-默认输出到当前工作目录，文件名为 `C41427486.step`。可以将 exe 所在目录加入自己的 PATH，然后在任意目录运行 `jlc-downloader C41427486`。
+默认输出到**运行命令时所在的目录**，文件名为 `C41427486.step`，与 exe 所在目录无关。
+将 `dist` 目录加入用户 PATH 并重新打开终端后，在任意目录运行：
+
+```powershell
+jlc-downloader --ID C41427486
+```
+
+不提供 `-o` 就下载到当前目录；提供 `-o` 才使用指定目录。`--id` 小写形式和原来的 `jlc-downloader C41427486` 用法也继续支持。
 
 ## Bash / Python 命令
 
@@ -26,13 +33,13 @@
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install .
-jlc-downloader C41427486 C2040 -o ./models
+jlc-downloader --ID C41427486 C2040 -o ./models
 ```
 
 也可以使用仓库中的 Bash 启动脚本：
 
 ```bash
-bash ./jlc-downloader C41427486 -o ./models
+bash ./jlc-downloader --ID C41427486 -o ./models
 ```
 
 它优先使用 Windows 构建产物或项目的虚拟环境，并保留调用者的工作目录。Git Bash 也支持这个入口。
@@ -51,6 +58,7 @@ python -m venv .venv
 
 | 参数 | 作用 |
 | --- | --- |
+| `--ID LCSC_ID ...` / `--id LCSC_ID ...` | 指定一个或多个编号，也可以重复使用此参数 |
 | `LCSC_ID ...` | 一个或多个编号；支持含编号的 LCSC 商品链接、立创搜索链接 |
 | `-o DIR` / `--output-dir DIR` | 输出目录，默认当前目录 |
 | `--overwrite` | 覆盖已存在的文件；默认跳过 |

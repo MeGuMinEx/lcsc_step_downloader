@@ -56,10 +56,13 @@ def save_model(path, data, overwrite=False):
 def make_parser():
     parser = argparse.ArgumentParser(
         prog="jlc-downloader", description="按 LCSC 编号下载 STEP 模型，保留文件中的颜色定义。",
-        epilog="示例：jlc-downloader C41427486 C2040 -o ./models",
+        epilog="示例：jlc-downloader --ID C41427486（下载到当前目录）",
     )
-    parser.add_argument("parts", nargs="+", type=part_argument, metavar="LCSC_ID",
-                        help="一个或多个编号，也支持包含编号的 LCSC 商品/搜索链接")
+    parser.add_argument("parts", nargs="*", type=part_argument, metavar="LCSC_ID",
+                        help="也可直接提供一个或多个编号，或包含编号的商城链接")
+    parser.add_argument("--ID", "--id", dest="ids", nargs="+", action="extend", default=[],
+                        type=part_argument, metavar="LCSC_ID",
+                        help="要下载的 LCSC 编号，例如 --ID C41427486；支持多个编号")
     parser.add_argument("-o", "--output-dir", type=Path, default=Path.cwd(), metavar="DIR",
                         help="输出目录（默认：当前目录，文件名为 C编号.step）")
     parser.add_argument("--overwrite", action="store_true", help="覆盖已存在的模型文件")
@@ -75,7 +78,11 @@ def main(argv=None):
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
-    args = make_parser().parse_args(argv)
+    parser = make_parser()
+    args = parser.parse_args(argv)
+    parts = args.parts + args.ids
+    if not parts:
+        parser.error("请提供 LCSC 编号，例如 --ID C41427486。")
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.ERROR,
                         format="%(levelname)s: %(message)s")
     output_dir = args.output_dir.expanduser().absolute()
@@ -89,7 +96,7 @@ def main(argv=None):
             print(json.dumps({"ok": False, "error": str(exc), "results": []}, ensure_ascii=False))
         return 1
     try:
-        for lcsc_id in dict.fromkeys(args.parts):
+        for lcsc_id in dict.fromkeys(parts):
             path = output_dir / f"{lcsc_id}.step"
             if path.exists() and not args.overwrite:
                 if not path.is_file():
