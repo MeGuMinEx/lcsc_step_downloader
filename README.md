@@ -45,6 +45,27 @@ jlc-downloader --ID C41427486 --overwrite
 
 Git Bash 中可运行 `./jlc-downloader.exe --ID C41427486`；加入 PATH 后同样可以直接运行 `jlc-downloader`。
 
+## 没有独立模型时的交互选择
+
+部分器件（例如 `C49234121`）没有独立的 3D 文件，商城会根据封装轮廓临时生成简化预览。工具遇到可生成简化模型的器件时，会显示：
+
+```text
+1. 下载简化模型
+2. 放弃下载简化模型
+请选择 [1/2]（默认 2）：
+```
+
+- 输入 `1`：生成 `C49234121_simplified.step`，默认保存到当前目录。
+- 输入 `2` 或直接回车：放弃该器件的简化模型，继续处理后续编号。
+
+简化模型包含灰色本体和银色引脚，厚度使用网页的预设值，仅作外观参考。它不包含实际器件的精细结构。目前支持直线多边形、圆形引脚和线段轮廓；复杂曲线、带孔或自相交轮廓会明确提示暂不支持。
+
+自动化调用可通过 `--simplified` 明确允许生成简化模型。`--json` 模式不会询问，必须加此参数才会生成：
+
+```bash
+jlc-downloader --ID C49234121 --simplified --json
+```
+
 ## Python 版使用方式
 
 需要 Python 3.10 或更新版本。下载并解压 Python 源码包，进入包含 `jlc-downloader.py` 的目录，直接安装依赖：
@@ -87,6 +108,8 @@ print(path)
 
 `output_dir` 默认当前目录，`overwrite` 默认 `False`，`timeout` 默认每个请求 30 秒。已有文件会保留并返回其路径；设置 `overwrite=True` 才重新下载。网络或模型查询失败抛出 `jlc_downloader.DownloadError`，文件写入失败抛出 `OSError`。
 
+Python 函数不会弹出交互菜单。如需允许简化模型，可调用 `download_model("C49234121", simplified=True)`；没有独立模型时会返回带 `_simplified.step` 后缀的文件路径。
+
 ## 参数
 
 | 参数 | 作用 |
@@ -97,10 +120,11 @@ print(path)
 | `--overwrite` | 覆盖已有文件；默认跳过 |
 | `--timeout SECONDS` | 每个请求的超时，默认 30 秒 |
 | `--json` | 输出一个 JSON 结果对象，便于其他程序调用 |
+| `--simplified` | 没有独立模型时允许生成简化模型，跳过交互确认 |
 | `--verbose` | 输出诊断日志 |
 | `--version` / `--help` | 查看版本或帮助 |
 
-批量下载遇到一个器件失败时，会继续处理其他器件；重复编号只处理一次。退出码：`0` 成功或跳过，`1` 下载/写入失败，`2` 参数错误，`130` 用户中断。
+批量下载遇到一个器件失败时，会继续处理其他器件；重复编号只处理一次。退出码：`0` 成功或跳过已有文件，`1` 下载/写入失败或放弃简化模型，`2` 参数错误，`130` 用户中断。JSON 中简化模型的 `status` 为 `generated`，`source` 为 `simplified`。
 
 ```bash
 python jlc-downloader.py --ID C41427486 C2040 --json > result.json

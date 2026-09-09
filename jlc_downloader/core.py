@@ -10,6 +10,8 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from easyeda2kicad.easyeda.easyeda_importer import Easyeda3dModelImporter
 
+from .simplified import UnsupportedOutline, build_step, preview_regions
+
 logger = logging.getLogger(__name__)
 API_ENDPOINT = "https://easyeda.com/api/products/{lcsc_id}/components"
 PREVIEW_API = "https://lceda.cn/api"
@@ -31,6 +33,19 @@ class ModelNotFound(DownloadError):
 
 class UpstreamError(DownloadError):
     pass
+
+
+class SimplifiedModelAvailable(ModelNotFound):
+    """No downloadable model, but the footprint can form a basic preview."""
+
+    def __init__(self, lcsc_id, regions):
+        super().__init__(f"{lcsc_id} 没有独立 3D 模型，但可以生成网页中的简化模型。")
+        self.lcsc_id = lcsc_id
+        self.regions = regions
+
+    def generate(self):
+        return DownloadedModel(self.lcsc_id, self.lcsc_id + "_simplified", "",
+                               build_step(self.lcsc_id, self.regions), "simplified")
 
 
 @dataclass(frozen=True)
@@ -130,6 +145,12 @@ def get_preview_model(session, lcsc_id, timeout):
                     if isinstance(item, dict) and item.get("uuid") == uuid), None)
     model = model_from_package(package)
     if model is None:
+        try:
+            regions = preview_regions(package)
+        except (UnsupportedOutline, ValueError, TypeError, KeyError) as exc:
+            raise ModelNotFound(f"{lcsc_id} 没有关联 3D 模型，且暂不能导出此简化轮廓：{exc}") from exc
+        if regions:
+            raise SimplifiedModelAvailable(lcsc_id, regions)
         raise ModelNotFound(f"EasyEDA 中的 {lcsc_id} 没有关联 3D 模型。")
     return model
 

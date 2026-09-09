@@ -8,7 +8,7 @@ files = [root / name for name in (
     "jlc-downloader.py", "jlc-downloader", "downloader.py", "README.md", "LICENSE",
     "THIRD_PARTY_NOTICES.md", "requirements.txt", "requirements-build.txt",
     "pyproject.toml", "MANIFEST.in", "build_exe.ps1", "RELEASE_NOTES.md",
-    "test_api.py", "test_cli.py", "test_downloader.py",
+    "test_api.py", "test_cli.py", "test_downloader.py", "test_simplified.py",
 )]
 files += sorted((root / "jlc_downloader").glob("*.py"))
 files += sorted((root / "packaging").glob("*.py"))

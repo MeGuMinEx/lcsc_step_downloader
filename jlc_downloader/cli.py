@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 from . import __version__
-from .core import DownloadError, download_step, normalize_lcsc_id
+from .core import DownloadError, SimplifiedModelAvailable, download_step, normalize_lcsc_id
 from .storage import save_model
 
 
@@ -29,6 +29,23 @@ def timeout_argument(value):
         raise argparse.ArgumentTypeError("超时必须是大于 0 的秒数。") from exc
 
 
+def choose_simplified(lcsc_id):
+    print(f"{lcsc_id} 没有独立 3D 模型，可根据封装轮廓生成简化模型。", file=sys.stderr)
+    print("简化模型采用网页预设厚度，仅作外观参考。", file=sys.stderr)
+    print("1. 下载简化模型\n2. 放弃下载简化模型", file=sys.stderr)
+    while True:
+        try:
+            print("请选择 [1/2]（默认 2）：", end="", file=sys.stderr, flush=True)
+            choice = input().strip()
+        except EOFError:
+            return False
+        if choice == "1":
+            return True
+        if choice in ("", "2"):
+            return False
+        print("请输入 1 或 2。", file=sys.stderr)
+
+
 def make_parser():
     parser = argparse.ArgumentParser(
         prog="jlc-downloader", description="按 LCSC 编号下载 STEP 模型，保留文件中的颜色定义。",
@@ -45,6 +62,8 @@ def make_parser():
     parser.add_argument("--timeout", type=timeout_argument, default=30, metavar="SECONDS",
                         help="每个网络请求的超时秒数（默认：30）")
     parser.add_argument("--json", action="store_true", help="以 JSON 输出结果，便于脚本调用")
+    parser.add_argument("--simplified", action="store_true",
+                        help="无独立模型时允许生成简化模型，跳过交互询问（供脚本调用）")
     parser.add_argument("--verbose", action="store_true", help="输出详细诊断日志")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
@@ -86,13 +105,33 @@ def main(argv=None):
                 results.append(result)
                 continue
             try:
-                model = download_step(lcsc_id, timeout=args.timeout)
+                try:
+                    model = download_step(lcsc_id, timeout=args.timeout)
+                except SimplifiedModelAvailable as candidate:
+                    if args.json and not args.simplified:
+                        raise DownloadError(str(candidate) + " 使用 --simplified 可允许生成简化模型。")
+                    if not args.simplified and not choose_simplified(lcsc_id):
+                        failed = True
+                        results.append({"lcsc_id": lcsc_id, "status": "cancelled"})
+                        print(f"已放弃下载 {lcsc_id} 的简化模型。", file=sys.stderr)
+                        continue
+                    path = output_dir / f"{lcsc_id}_simplified.step"
+                    if path.exists() and not args.overwrite:
+                        if not path.is_file():
+                            raise IsADirectoryError(f"输出路径不是文件：{path}")
+                        results.append({"lcsc_id": lcsc_id, "status": "skipped", "path": str(path)})
+                        if not args.json:
+                            print(f"已存在，跳过：{path}")
+                        continue
+                    model = candidate.generate()
                 save_model(path, model.data, args.overwrite)
-                result = {"lcsc_id": lcsc_id, "status": "downloaded", "path": str(path),
+                status = "generated" if model.source == "simplified" else "downloaded"
+                result = {"lcsc_id": lcsc_id, "status": status, "path": str(path),
                           "name": model.name, "uuid": model.uuid, "bytes": len(model.data),
                           "source": model.source}
                 if not args.json:
-                    print(f"已下载：{path} ({len(model.data):,} bytes)")
+                    action = "已生成简化模型" if model.source == "simplified" else "已下载"
+                    print(f"{action}：{path} ({len(model.data):,} bytes)")
             except (DownloadError, OSError) as exc:
                 failed = True
                 result = {"lcsc_id": lcsc_id, "status": "error", "error": str(exc)}
