@@ -4,13 +4,12 @@ import argparse
 import json
 import logging
 import math
-import os
 from pathlib import Path
 import sys
-import tempfile
 
 from . import __version__
 from .core import DownloadError, download_step, normalize_lcsc_id
+from .storage import save_model
 
 
 def part_argument(value):
@@ -28,29 +27,6 @@ def timeout_argument(value):
         return seconds
     except ValueError as exc:
         raise argparse.ArgumentTypeError("超时必须是大于 0 的秒数。") from exc
-
-
-def save_model(path, data, overwrite=False):
-    """Publish only a complete file; refuse to replace files unless requested."""
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".jlc-", suffix=".tmp", delete=False) as file:
-        temporary = Path(file.name)
-        try:
-            file.write(data)
-            file.flush()
-            os.fsync(file.fileno())
-        except BaseException:
-            file.close()
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        if overwrite:
-            os.replace(temporary, path)
-        elif os.name == "nt":
-            os.rename(temporary, path)
-        else:
-            os.link(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 def make_parser():

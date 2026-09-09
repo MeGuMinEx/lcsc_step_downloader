@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from urllib.parse import parse_qs, urlparse
 
 import requests
+from easyeda2kicad.easyeda.easyeda_importer import Easyeda3dModelImporter
 
 logger = logging.getLogger(__name__)
 API_ENDPOINT = "https://easyeda.com/api/products/{lcsc_id}/components"
@@ -97,22 +98,18 @@ def model_from_package(package):
             data = json.loads(data)
         if not isinstance(data, dict) or not isinstance(data.get("shape"), list):
             raise ValueError("missing footprint shapes")
-        for shape in data["shape"]:
-            if not isinstance(shape, str) or not shape.startswith("SVGNODE~"):
-                continue
-            attrs = json.loads(shape.partition("~")[2]).get("attrs", {})
-            uuid = attrs.get("uuid")
-            if not uuid:
-                continue
-            if not isinstance(uuid, str) or not re.fullmatch(r"[0-9a-fA-F]{32}", uuid):
-                raise ValueError("invalid model UUID")
-            name = attrs.get("title") or "model"
-            if not isinstance(name, str):
-                raise ValueError("invalid model name")
-            return ModelReference(name, uuid)
-    except (ValueError, TypeError, AttributeError) as exc:
+        model = Easyeda3dModelImporter(
+            {"packageDetail": {**package, "dataStr": data}}, download_raw_3d_model=False
+        ).output
+        if model is None:
+            return None
+        if not isinstance(model.uuid, str) or not re.fullmatch(r"[0-9a-fA-F]{32}", model.uuid):
+            raise ValueError("invalid model UUID")
+        if not isinstance(model.name, str) or not model.name:
+            raise ValueError("invalid model name")
+        return ModelReference(model.name, model.uuid)
+    except (ValueError, TypeError, AttributeError, KeyError, IndexError) as exc:
         raise UpstreamError("EasyEDA 返回的 3D 模型信息不完整。") from exc
-    return None
 
 
 def get_preview_model(session, lcsc_id, timeout):

@@ -8,10 +8,8 @@ esac
 script_dir="$(cd -- "$script_dir" && pwd)"
 if [[ -f "$script_dir/dist/jlc-downloader.exe" && "${OS:-}" == "Windows_NT" ]]; then
     exec "$script_dir/dist/jlc-downloader.exe" "$@"
-elif [[ -x "$script_dir/.venv/bin/python" ]]; then
-    exec "$script_dir/.venv/bin/python" "$script_dir/packaging/entrypoint.py" "$@"
-elif [[ -f "$script_dir/.venv/Scripts/python.exe" ]]; then
-    exec "$script_dir/.venv/Scripts/python.exe" "$script_dir/packaging/entrypoint.py" "$@"
+elif command -v python >/dev/null 2>&1; then
+    exec python "$script_dir/packaging/entrypoint.py" "$@"
 else
     exec python3 "$script_dir/packaging/entrypoint.py" "$@"
 fi

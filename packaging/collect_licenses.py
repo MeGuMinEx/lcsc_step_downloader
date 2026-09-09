@@ -9,7 +9,7 @@ import sys
 project = Path(__file__).resolve().parents[1]
 target = project / "build" / "third-party-licenses"
 target.mkdir(parents=True, exist_ok=True)
-for name in ("requests", "urllib3", "certifi", "charset-normalizer", "idna"):
+for name in ("easyeda2kicad", "requests", "urllib3", "certifi", "charset-normalizer", "idna"):
     package = distribution(name)
     for file in package.files or []:
         if "dist-info" in str(file) and file.name.upper().startswith(("LICENSE", "COPYING", "NOTICE")):

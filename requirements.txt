@@ -1,1 +1,2 @@
--e .[web]
+easyeda2kicad==1.0.1
+requests>=2.32.3,<3

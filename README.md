@@ -1,109 +1,133 @@
+鸣谢：本项目参考并基于 [wormyrocks 的 lcsc_step_downloader](https://github.com/wormyrocks/lcsc_step_downloader) 修改而来。感谢原作者提供的项目，原始版权声明保留在 [LICENSE](LICENSE) 中。
+
 # JLC STEP Downloader
 
-按立创商城编号下载 STEP 三维模型，保留源文件中的颜色定义。支持 Windows 独立 exe、Bash 和 Python 命令行，原来的网页下载方式也可继续使用。
+按立创商城编号下载 STEP 三维模型，保留源文件中的颜色定义。提供两个版本：
 
-例如 `C41427486`：普通 EasyEDA 元件接口查不到时，工具会自动使用商城交互式 3D 预览的封装查询接口。
+- **Python 版**：安装依赖后，直接运行 `jlc-downloader.py`，也可调用 Python 函数。
+- **Windows exe 版**：内置 Python 和依赖，下载即可运行。
 
-## Windows exe
+两种版本默认把 `C41427486.step` 保存到**运行命令时的当前目录**，与程序所在目录无关。
 
-构建后的程序位于 `dist/jlc-downloader.exe`，可以单独复制到其他目录使用，无需安装 Python。
+## 下载
 
-在 PowerShell 中运行：
+前往 [GitHub Releases](https://github.com/MeGuMinEx/lcsc_step_downloader/releases/latest)，下载所需版本：
+
+| 文件 | 用途 |
+| --- | --- |
+| [jlc-downloader.exe](https://github.com/MeGuMinEx/lcsc_step_downloader/releases/latest/download/jlc-downloader.exe) | Windows x64 独立程序，自带运行库 |
+| [jlc-downloader-python.zip](https://github.com/MeGuMinEx/lcsc_step_downloader/releases/latest/download/jlc-downloader-python.zip) | Python 源码包，解压后自行安装依赖 |
+
+## exe 版使用方式
+
+无需另行安装 Python 或 easyeda2kicad。在 exe 所在目录打开 PowerShell：
 
 ```powershell
-.\dist\jlc-downloader.exe --ID C41427486
-.\dist\jlc-downloader.exe --ID C41427486 C2040 -o .\models
-.\dist\jlc-downloader.exe "https://www.lcsc.com/product-detail/C41427486.html" -o .\models
+.\jlc-downloader.exe --ID C41427486
 ```
 
-默认输出到**运行命令时所在的目录**，文件名为 `C41427486.step`，与 exe 所在目录无关。
-将 `dist` 目录加入用户 PATH 并重新打开终端后，在任意目录运行：
+如需在任意目录直接调用，把 **exe 所在文件夹**手动加入 PATH，重新打开终端后运行：
 
 ```powershell
 jlc-downloader --ID C41427486
 ```
 
-不提供 `-o` 就下载到当前目录；提供 `-o` 才使用指定目录。`--id` 小写形式和原来的 `jlc-downloader C41427486` 用法也继续支持。
-
-## Bash / Python 命令
-
-需要 Python 3.10 或更新版本。在仓库目录安装：
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install .
-jlc-downloader --ID C41427486 C2040 -o ./models
-```
-
-也可以使用仓库中的 Bash 启动脚本：
-
-```bash
-bash ./jlc-downloader --ID C41427486 -o ./models
-```
-
-它优先使用 Windows 构建产物或项目的虚拟环境，并保留调用者的工作目录。Git Bash 也支持这个入口。
-
-Windows 的 Python 安装方式：
+例如在 `D:\MEGUMINEX\Downloads` 运行，就会下载到 `D:\MEGUMINEX\Downloads\C41427486.step`。
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install .
-.\.venv\Scripts\jlc-downloader.exe C41427486 -o .\models
+# 批量下载到当前目录
+jlc-downloader --ID C41427486 C2040
+
+# 下载到指定目录
+jlc-downloader --ID C41427486 -o .\models
+
+# 覆盖已有文件
+jlc-downloader --ID C41427486 --overwrite
 ```
 
-通过 Python 模块调用的等价形式为 `python -m jlc_downloader C41427486`。
+Git Bash 中可运行 `./jlc-downloader.exe --ID C41427486`；加入 PATH 后同样可以直接运行 `jlc-downloader`。
 
-## 参数和脚本调用
+## Python 版使用方式
+
+需要 Python 3.10 或更新版本。下载并解压 Python 源码包，进入包含 `jlc-downloader.py` 的目录，直接安装依赖：
+
+```bash
+python -m pip install easyeda2kicad==1.0.1 requests
+```
+
+也可以执行 `python -m pip install -r requirements.txt`。
+
+运行：
+
+```bash
+python jlc-downloader.py --ID C41427486
+python jlc-downloader.py --ID C41427486 C2040 -o ./models
+```
+
+在其他目录中运行时，指定脚本的完整路径即可，输出仍默认保存到当前目录：
+
+```powershell
+python "D:\Tools\JLC-Downloader\lcsc_step_downloader\jlc-downloader.py" --ID C41427486
+```
+
+如果本机 Python 命令为 `python3`，把示例中的 `python` 换成 `python3`。请保留源码包内的 `jlc_downloader` 文件夹，它与入口脚本配套使用。
+
+## Python 运行函数
+
+在源码目录下，或将项目安装到当前 Python 环境后，调用 `download_model(...)`：
+
+```python
+from jlc_downloader import download_model
+
+# 下载到当前工作目录，返回文件的绝对路径（pathlib.Path）
+path = download_model("C41427486")
+print(path)
+
+# 指定输出目录和可选参数
+path = download_model(
+    "C2040",
+    output_dir="./models",
+    overwrite=True,
+    timeout=30,
+)
+print(path)
+```
+
+`output_dir` 默认当前目录，`overwrite` 默认 `False`，`timeout` 默认每个请求 30 秒。已有文件会保留并返回其路径；设置 `overwrite=True` 才重新下载。网络或模型查询失败抛出 `jlc_downloader.DownloadError`，文件写入失败抛出 `OSError`。
+
+## 参数
 
 | 参数 | 作用 |
 | --- | --- |
-| `--ID LCSC_ID ...` / `--id LCSC_ID ...` | 指定一个或多个编号，也可以重复使用此参数 |
-| `LCSC_ID ...` | 一个或多个编号；支持含编号的 LCSC 商品链接、立创搜索链接 |
+| `--ID LCSC_ID ...` / `--id LCSC_ID ...` | 一个或多个编号 |
+| `LCSC_ID ...` | 也支持直接传入编号，或包含编号的商城链接 |
 | `-o DIR` / `--output-dir DIR` | 输出目录，默认当前目录 |
-| `--overwrite` | 覆盖已存在的文件；默认跳过 |
-| `--timeout SECONDS` | 每个网络请求的超时，默认 30 秒 |
-| `--json` | 向标准输出写入一个 JSON 对象 |
-| `--verbose` | 向标准错误输出诊断日志 |
+| `--overwrite` | 覆盖已有文件；默认跳过 |
+| `--timeout SECONDS` | 每个请求的超时，默认 30 秒 |
+| `--json` | 输出一个 JSON 结果对象，便于其他程序调用 |
+| `--verbose` | 输出诊断日志 |
 | `--version` / `--help` | 查看版本或帮助 |
 
-批量下载遇到某个器件失败时，会继续处理其他器件。重复编号只处理一次。
-输出文件先写入临时文件，成功后再保存为最终文件，避免留下不完整的 STEP。
+批量下载遇到一个器件失败时，会继续处理其他器件；重复编号只处理一次。退出码：`0` 成功或跳过，`1` 下载/写入失败，`2` 参数错误，`130` 用户中断。
 
 ```bash
-jlc-downloader C41427486 C2040 -o ./models --json > result.json
+python jlc-downloader.py --ID C41427486 C2040 --json > result.json
 ```
 
-JSON 的顶层字段为 `ok` 和 `results`。每项包含 `lcsc_id`、`status`，成功时还包含 `path`、`name`、`uuid`、`bytes`、`source`；失败时包含 `error`。`status` 为 `downloaded`、`skipped` 或 `error`。
+## 开发与构建
 
-退出码：`0` 全部成功或跳过，`1` 下载/写入失败，`2` 参数错误，`130` 用户中断。参数错误通过标准错误输出 argparse 帮助信息。网络请求支持 Requests 标准的 `HTTPS_PROXY` 等环境变量。
+`easyeda2kicad` 用于读取封装中的模型信息，Requests 用于查询接口和下载 STEP。普通元件接口查不到时，会尝试商城交互式 3D 预览所使用的封装查询接口。下载需要联网，且模型服务器需要提供对应 STEP 文件。
 
-## 原网页方式
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[web]"
-.\.venv\Scripts\python.exe downloader.py
-```
-
-打开 http://127.0.0.1:5000，输入编号下载。直接下载地址为 `/get_model/C41427486`。网页和命令行共用相同的下载逻辑。
-
-## 构建和验证
-
-在 Windows 中构建单文件 exe，同时生成 Python wheel 和源码包：
+在 Windows 下自行构建两个版本：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[web]" -r requirements-build.txt
-.\.venv\Scripts\python.exe -m unittest -v
+python -m pip install -r requirements.txt -r requirements-build.txt Flask
+python -m unittest -v
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build_exe.ps1
 ```
 
-产物输出到 `dist/`。exe 内嵌 Python、运行依赖和许可证文件。构建需要 Windows；Python 包和 Bash 入口可以在 Linux/macOS 使用。运行时仍需联网访问 EasyEDA/LCSC。
+输出为 `dist/jlc-downloader.exe` 和 `dist/jlc-downloader-python.zip`。构建脚本默认使用 PATH 中的 `python`，也支持 `-Python "C:\Python311\python.exe"` 指定解释器。
 
-工具只读取预览所需的封装名称和 3D UUID，再下载源 STEP，不转换模型、不重新着色。CLI 运行依赖只有 Requests，不需要 Flask 或 easyeda2kicad。即使网页有 3D 预览，服务器仍需提供对应 STEP 文件才能下载。
+原网页入口保留在 `downloader.py`，安装 Flask 后可运行 `python downloader.py`，访问 http://127.0.0.1:5000。
 
-## 项目来源
-
-基于 [wormyrocks/lcsc_step_downloader](https://github.com/wormyrocks/lcsc_step_downloader) 的 MIT 项目扩展，保留原版权声明。当前仓库为 [MeGuMinEx/lcsc_step_downloader](https://github.com/MeGuMinEx/lcsc_step_downloader)。
-
-软件许可证见 [LICENSE](LICENSE)，运行依赖说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+软件许可证见 [LICENSE](LICENSE)，第三方依赖说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
