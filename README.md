@@ -32,8 +32,6 @@
 jlc-downloader --ID C41427486
 ```
 
-例如在 `D:\MEGUMINEX\Downloads` 运行，就会下载到 `D:\MEGUMINEX\Downloads\C41427486.step`。
-
 ```powershell
 # 批量下载到当前目录
 jlc-downloader --ID C41427486 C2040
@@ -62,12 +60,6 @@ python -m pip install easyeda2kicad==1.0.1 requests
 ```bash
 python jlc-downloader.py --ID C41427486
 python jlc-downloader.py --ID C41427486 C2040 -o ./models
-```
-
-在其他目录中运行时，指定脚本的完整路径即可，输出仍默认保存到当前目录：
-
-```powershell
-python "D:\Tools\JLC-Downloader\lcsc_step_downloader\jlc-downloader.py" --ID C41427486
 ```
 
 如果本机 Python 命令为 `python3`，把示例中的 `python` 换成 `python3`。请保留源码包内的 `jlc_downloader` 文件夹，它与入口脚本配套使用。
@@ -126,7 +118,7 @@ python -m unittest -v
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build_exe.ps1
 ```
 
-输出为 `dist/jlc-downloader.exe` 和 `dist/jlc-downloader-python.zip`。构建脚本默认使用 PATH 中的 `python`，也支持 `-Python "C:\Python311\python.exe"` 指定解释器。
+输出为 `dist/jlc-downloader.exe` 和 `dist/jlc-downloader-python.zip`。构建脚本默认使用 PATH 中的 `python`，也支持通过 `-Python` 参数指定解释器。
 
 原网页入口保留在 `downloader.py`，安装 Flask 后可运行 `python downloader.py`，访问 http://127.0.0.1:5000。
 
