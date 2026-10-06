@@ -45,6 +45,27 @@ jlc-downloader --ID C41427486 --overwrite
 
 Git Bash 中可运行 `./jlc-downloader.exe --ID C41427486`；加入 PATH 后同样可以直接运行 `jlc-downloader`。
 
+## 自定义下载文件名
+
+使用 `--name`（简写 `-n`）指定易读的名称：
+
+```powershell
+jlc-downloader --ID C41427486 --name "复位按键"
+jlc-downloader --ID C41427486 -n "Reset Switch.step" -o ./models
+```
+
+第一条命令生成当前目录中的 `复位按键.step`。名称支持中文和空格；不以 `.step` 或 `.stp` 结尾时，自动补上 `.step`。
+
+`--name` 一次只用于一个物料，避免多个器件使用同一个文件名。只填写文件名，下载目录仍通过 `-o` 指定。已有文件默认跳过，需要替换时加 `--overwrite`。
+
+简化模型仍会加上 `_simplified` 标记。例如：
+
+```powershell
+jlc-downloader --ID C49234121 --name "轻触按键"
+```
+
+在菜单中选择下载简化模型后，生成 `轻触按键_simplified.step`。不指定 `--name` 时，继续使用原来的物料编号命名。
+
 ## 没有独立模型时的交互选择
 
 部分器件（例如 `C49234121`）没有独立的 3D 文件，商城会根据封装轮廓临时生成简化预览。工具遇到可生成简化模型的器件时，会显示：
@@ -100,11 +121,14 @@ print(path)
 path = download_model(
     "C2040",
     output_dir="./models",
+    filename="主控芯片.step",
     overwrite=True,
     timeout=30,
 )
 print(path)
 ```
+
+`filename` 可指定文件名，例如 `download_model("C41427486", filename="复位按键")`；默认按物料编号命名，简化模型保留 `_simplified` 标记。
 
 `output_dir` 默认当前目录，`overwrite` 默认 `False`，`timeout` 默认每个请求 30 秒。已有文件会保留并返回其路径；设置 `overwrite=True` 才重新下载。网络或模型查询失败抛出 `jlc_downloader.DownloadError`，文件写入失败抛出 `OSError`。
 
@@ -117,6 +141,7 @@ Python 函数不会弹出交互菜单。如需允许简化模型，可调用 `do
 | `--ID LCSC_ID ...` / `--id LCSC_ID ...` | 一个或多个编号 |
 | `LCSC_ID ...` | 也支持直接传入编号，或包含编号的商城链接 |
 | `-o DIR` / `--output-dir DIR` | 输出目录，默认当前目录 |
+| `-n NAME` / `--name NAME` | 自定义文件名，仅限单个物料；可省略 `.step` 扩展名 |
 | `--overwrite` | 覆盖已有文件；默认跳过 |
 | `--timeout SECONDS` | 每个请求的超时，默认 30 秒 |
 | `--json` | 输出一个 JSON 结果对象，便于其他程序调用 |

@@ -1,49 +1,33 @@
 鸣谢：本项目参考并基于 [wormyrocks/lcsc_step_downloader](https://github.com/wormyrocks/lcsc_step_downloader) 修改而来。
 
-本 Release 提供两个版本：
-
-- **jlc-downloader.exe**：Windows x64 独立程序，已内置 Python 和依赖，下载即可运行。
-- **jlc-downloader-python.zip**：Python 源码包，解压后自行安装依赖并运行 .py 文件。
-
-新增无独立 3D 模型时的交互选择：
-
-```text
-1. 下载简化模型
-2. 放弃下载简化模型
-```
-
-例如运行 `jlc-downloader --ID C49234121` 后选择 `1`，会生成 `C49234121_simplified.step`。选择 `2` 或直接回车则放弃，不创建文件。
-
-简化模型按网页的本体/引脚轮廓和预设厚度生成，仅作外观参考。导出由纯 Python 实现，无需额外安装 CAD 软件或 CAD 运行库。目前支持直线多边形、圆形引脚和线段轮廓；复杂曲线及带孔轮廓暂不支持。
-
-自动化调用可加 `--simplified`，Python 函数可加 `simplified=True`。JSON 模式不会弹出询问。
-
-### exe 版
+v0.4.0 新增自定义下载文件名：
 
 ```powershell
-.\jlc-downloader.exe --ID C41427486
+jlc-downloader --ID C41427486 --name "复位按键"
 ```
 
-将 exe 所在文件夹加入 PATH 后：
+文件保存为当前目录中的 `复位按键.step`。
 
-```powershell
-jlc-downloader --ID C41427486
-```
+- 支持 `--name` / `-n`，中文和空格，以及 `.step` / `.stp` 扩展名；未写扩展名会自动补 `.step`。
+- 自定义名称限一个物料；下载目录由 `-o` 指定，已有文件默认跳过，覆盖需加 `--overwrite`。
+- 简化模型继续保留 `_simplified` 文件名标记。
+- 不指定名称时保持原来的物料编号命名方式。
 
-### Python 版
-
-在解压后的源码目录执行：
-
-```bash
-python -m pip install easyeda2kicad==1.0.1 requests
-python jlc-downloader.py --ID C41427486
-```
-
-也支持函数调用：
+Python 函数也支持：
 
 ```python
 from jlc_downloader import download_model
-path = download_model("C41427486")
+path = download_model("C41427486", filename="复位按键.step")
 ```
 
-两种版本都默认保存到命令行当前目录，支持批量编号、`-o`、`--overwrite`、`--timeout` 和 `--json`。STEP 文件保留模型服务器提供的颜色定义。
+Release 仅提供两个附件：
+
+- **jlc-downloader.exe**：Windows x64 程序，内置 Python 和运行依赖。替换旧 exe 后直接使用。
+- **jlc-downloader-python.zip**：Python 源码版，自行安装依赖后运行：
+
+```bash
+python -m pip install easyeda2kicad==1.0.1 requests
+python jlc-downloader.py --ID C41427486 --name "复位按键"
+```
+
+简化模型采用预设厚度，仅作外观参考。支持交互选择以及 `--simplified`、`--json` 自动化调用。

@@ -9,7 +9,7 @@ import sys
 
 from . import __version__
 from .core import DownloadError, SimplifiedModelAvailable, download_step, normalize_lcsc_id
-from .storage import save_model
+from .storage import output_filename, save_model
 
 
 def part_argument(value):
@@ -58,6 +58,8 @@ def make_parser():
                         help="要下载的 LCSC 编号，例如 --ID C41427486；支持多个编号")
     parser.add_argument("-o", "--output-dir", type=Path, default=Path.cwd(), metavar="DIR",
                         help="输出目录（默认：当前目录，文件名为 C编号.step）")
+    parser.add_argument("-n", "--name", dest="filename", metavar="NAME",
+                        help="自定义文件名，仅限单个物料；不写 .step/.stp 时自动补 .step")
     parser.add_argument("--overwrite", action="store_true", help="覆盖已存在的模型文件")
     parser.add_argument("--timeout", type=timeout_argument, default=30, metavar="SECONDS",
                         help="每个网络请求的超时秒数（默认：30）")
@@ -75,9 +77,16 @@ def main(argv=None):
             stream.reconfigure(encoding="utf-8", errors="replace")
     parser = make_parser()
     args = parser.parse_args(argv)
-    parts = args.parts + args.ids
+    parts = list(dict.fromkeys(args.parts + args.ids))
     if not parts:
         parser.error("请提供 LCSC 编号，例如 --ID C41427486。")
+    if args.filename is not None and len(parts) != 1:
+        parser.error("--name 仅支持一个物料；不同物料请分别指定文件名下载。")
+    try:
+        filenames = {part: (output_filename(part, args.filename),
+                            output_filename(part, args.filename, simplified=True)) for part in parts}
+    except ValueError as exc:
+        parser.error(str(exc))
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.ERROR,
                         format="%(levelname)s: %(message)s")
     output_dir = args.output_dir.expanduser().absolute()
@@ -91,8 +100,8 @@ def main(argv=None):
             print(json.dumps({"ok": False, "error": str(exc), "results": []}, ensure_ascii=False))
         return 1
     try:
-        for lcsc_id in dict.fromkeys(parts):
-            path = output_dir / f"{lcsc_id}.step"
+        for lcsc_id in parts:
+            path = output_dir / filenames[lcsc_id][0]
             if path.exists() and not args.overwrite:
                 if not path.is_file():
                     failed = True
@@ -115,7 +124,7 @@ def main(argv=None):
                         results.append({"lcsc_id": lcsc_id, "status": "cancelled"})
                         print(f"已放弃下载 {lcsc_id} 的简化模型。", file=sys.stderr)
                         continue
-                    path = output_dir / f"{lcsc_id}_simplified.step"
+                    path = output_dir / filenames[lcsc_id][1]
                     if path.exists() and not args.overwrite:
                         if not path.is_file():
                             raise IsADirectoryError(f"输出路径不是文件：{path}")
